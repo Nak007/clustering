@@ -597,7 +597,7 @@ class plot_factors:
         n_row = int(math.ceil(n_figure/self.n_column))
         gridsize = (n_row, self.n_column)
         fig_loc = [(n,m) for n in range(n_row) 
-                   for m in range(n_column)][:n_figure]
+                   for m in range(self.n_column)][:n_figure]
 
         # Columns names
         if factor is None: factor = list(X)[0]
