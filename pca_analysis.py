@@ -366,12 +366,12 @@ class principal_components:
         \t axis refers to a single Axes object 
         '''
         colors = ('#ff5252','#3c40c6')
-        labels = ('Cumulative variances','Proportional variance')
+        labels = ['Cumulative variances','Proportional variance']
         
-        x = np.arange(len(self.var_exp))
+        x, line = np.arange(len(self.var_exp)), [None]*2
         kwargs = dict(lw=1.3, marker='o', markersize=4)
         for (n,y) in enumerate([self.cum_var_exp, self.var_exp]):
-            axis.plot(x, y, **{**kwargs, **dict(color=colors[n], label=labels[n])})
+            line[n] = axis.plot(x, y, **{**kwargs, **dict(color=colors[n])})
         
         kwargs = dict(color='#3d3d3d', fontsize=11)
         axis.set_xlabel(r'$\mathbf{Principal}$ $\mathbf{Components}$', **kwargs)
@@ -380,21 +380,22 @@ class principal_components:
         axis.set_title('PCA: Explained Variance', fontsize=14)
         
         axis.set_xticks(x)
-        kwargs = dict(color='#3d3d3d', fontsize=9, rotation=90)
+        kwargs = dict(color='#3d3d3d', fontsize=9, rotation=0)
         axis.set_xticklabels(self.__xticklabels(len(x)), **kwargs)
         axis.grid(True, color='#aaa69d', lw=0.5, ls='--')
-        axis.legend(loc='best', fontsize=10)
         axis.set_ylim(-10, 110)
         axis.set_xlim(-0.5,len(x)-0.5)
 
         # General selection criterion (cum_var) >= 80%)
         n = sum((self.cum_var_exp<=self.var_cutoff).astype(int))-1
-        axis.axvspan(-0.5, n, color='#aaa69d', alpha=0.2)
+        span = axis.axvspan(-0.5, n, color='#aaa69d', alpha=0.2)
         axis.axvline(n, color='#3d3d3d', ls='--', lw=0.8)
         kwargs = dict(fontsize=10, color='#3d3d3d',va='center', ha='right', rotation=90)
         axis.text(n, 50, '# of PCs = %d ' % (n+1), **kwargs)
-        axis.text(n + 0.2, 50, r'cut-off $\leq$ %.2f ' % (self.var_cutoff), 
-                  **{**kwargs,**dict(ha='left')})
+
+        lines = [line[0][0], line[1][0], span]
+        labels = labels + [r'Cut-off $\leq$ %.2f ' % (self.var_cutoff)]
+        axis.legend(lines, labels,loc='best', fontsize=10)
 
         # Add annotate 
         kwargs = dict(ha='center',va='bottom',fontsize=10)
@@ -420,7 +421,7 @@ class principal_components:
         \t axis refers to a single Axes object 
         '''
         x = np.arange(len(self.eig_value))
-        axis.plot(x, self.eig_value, color='#ff5252', lw=1.3, marker='o', markersize=4)
+        line = axis.plot(x, self.eig_value, color='#ff5252', lw=1.3, marker='o', markersize=4)
         kwargs = dict(color='#3d3d3d', fontsize=11)
         axis.set_xlabel(r'$\mathbf{Principal}$ $\mathbf{Components}$', **kwargs)
         axis.set_ylabel(r'$\mathbf{Eigen}$ $\mathbf{Value}$', **kwargs)
@@ -428,20 +429,22 @@ class principal_components:
         axis.set_title('PCA: Scree Plot',fontsize=14)
         axis.set_xticks(x)
         axis.set_xlim(-0.5,len(x)-0.5)
-        kwargs = dict(color='#3d3d3d', fontsize=9, rotation=90)
+        kwargs = dict(color='#3d3d3d', fontsize=9, rotation=0)
         axis.set_xticklabels(self.__xticklabels(len(x)+1), **kwargs)
         axis.grid(True, color='#aaa69d', lw=0.5, ls='--')
 
         # General selection criterion (eig_val_np) >= 1)
         n = sum((self.eig_value>=self.eigen_cutoff).astype(int))-1
-        axis.axvspan(-0.5,n, color='#aaa69d', alpha=0.2)
+        span = axis.axvspan(-0.5,n, color='#aaa69d', alpha=0.2)
         axis.axvline(n, color='#3d3d3d', ls='--', lw=0.8)
         kwargs = dict(fontsize=10, color='#3d3d3d', va='top', ha='right', rotation=90)
         e_max = max(self.eig_value)
         axis.text(n, e_max, '# of PCs = %d ' % (n+1), **kwargs)
-        axis.text(n+0.2, e_max, r'cut-off $\geq$ %.2f ' % (self.eigen_cutoff), 
-                  **{**kwargs,**dict(ha='left')})
-    
+
+        lines = [line[0], span]
+        labels = ['Eigin value', r'Cut-off $\geq$ %.2f ' % (self.eigen_cutoff)]
+        axis.legend(lines, labels,loc='best', fontsize=10)
+
         # Add annotate
         kwargs = dict(color='#ff5252', ha='center',va='bottom',fontsize=10)
         for n, amt in enumerate(self.eig_value):
@@ -459,8 +462,8 @@ class principal_components:
         \t A path, or a Python file-like object 
         \t (more info see matplotlib.pyplot.savefig)
         '''
-        width = max(10,len(self.eig_value)*0.3)
-        fig, axis = plt.subplots(2,1,figsize=(width,9))
+        width = len(self.eig_value)*0.6
+        fig, axis = plt.subplots(2,1,figsize=(width,8))
         self.explained_variance(axis[0])
         self.eigen_value(axis[1])
         fig.tight_layout()
@@ -481,8 +484,8 @@ class principal_components:
         \t A path, or a Python file-like object 
         \t (more info see matplotlib.pyplot.savefig)
         '''
-        height = len(self.columns)*0.3
-        width = max(10,len(self.eig_value)*0.4)
+        height = len(self.columns)*0.5
+        width = len(self.eig_value)*0.8
         fig, axis = plt.subplots(figsize=(width,height))
         self.factor_loadings(fig, axis, n_step)
         fig.tight_layout()
@@ -514,7 +517,7 @@ class principal_components:
         axis.set_ylabel(r'$\mathbf{Variables}$', **kwargs)
         axis.set_title('PCA: Factor Loadings (Component Matrix)',fontsize=14)
         
-        kwargs = dict(color='#3d3d3d', fontsize=10, rotation=90)
+        kwargs = dict(color='#3d3d3d', fontsize=9, rotation=0)
         x = np.arange(len(self.eig_value)) + 0.5
         axis.set_xticks(x)
         axis.set_xticklabels(self.__xticklabels(len(x)+1), **kwargs)
