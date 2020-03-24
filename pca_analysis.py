@@ -722,7 +722,7 @@ class factor_analysis:
         \t A path, or a Python file-like object 
         \t (more info see matplotlib.pyplot.savefig)
         '''
-        figsize = (self.n_factors,len(self.features)*0.3)
+        figsize = (self.n_factors,len(self.features)*0.5)
         fig, axis = plt.subplots(figsize=figsize)
         ticks = np.arange(self.n_factors) + 0.5
         kwargs = dict(cmap=cm.get_cmap('RdBu',n_step), vmin=-1, vmax=1, 
