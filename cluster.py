@@ -807,7 +807,7 @@ class cluster_factors:
         # plot layout
         if method=='scatter': n_plots = X.shape[1]-1
         else: n_plots = X.shape[1]
-        n_rows = int(math.ceil(n_plots/self.n_columns))
+        n_rows = int(np.ceil(n_plots/self.n_columns))
         shape = (n_rows, self.n_columns)
         loc = [(n,m) for n in range(n_rows) for m in 
                range(self.n_columns)][:n_plots]
