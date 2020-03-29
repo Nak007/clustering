@@ -1,3 +1,11 @@
+'''
+Class
+-----
+(1) outliers
+(2) principal_components
+(3) plot_factors
+(4) factor_analysis
+'''
 import pandas as pd, numpy as np, os, math
 import matplotlib.pylab as plt
 from matplotlib import cm
@@ -80,7 +88,7 @@ class outliers:
             return ['Unnamed'], np.array(X).reshape(-1,1)
         elif isinstance(X, np.ndarray) & (X.size!=len(X)):
             digit = 10**math.ceil(np.log(X.shape[1])/np.log(10))
-            columns = ['Unnamed: '+str(digit+n)[1:] for n in range(n)]
+            columns = ['Unnamed: '+str(digit+n)[1:] for n in range(X.shape[1])]
             return columns, X
     
     def __iqr_cap(self, a):
@@ -266,7 +274,7 @@ class principal_components:
             return ['Unnamed'], np.array(X).reshape(-1,1)
         elif isinstance(X, np.ndarray) & (X.size!=len(X)):
             digit = 10**math.ceil(np.log(X.shape[1])/np.log(10))
-            columns = ['Unnamed: '+str(digit+n)[1:] for n in range(n)]
+            columns = ['Unnamed: '+str(digit+n)[1:] for n in range(X.shape[1])]
             return columns, X
   
     def fit(self, X):
@@ -537,8 +545,9 @@ class plot_factors:
     random_state : int, optional, (defualt:0)
     \t Seed for the random number generator
     
-    p_samples : float, optional, (default:0.5)
-    \t Percentage of samples to be randomly selected
+    frac : float, optional, (default:0.5)
+    \t Percentage of samples to be randomly selected.
+    \t Fraction of axis items to return. 
     
     alpha : float, optional, (default: 1.0)
     \t Alpha refers to the probability outside the confidence 
@@ -552,10 +561,9 @@ class plot_factors:
     -------
     fit(self, X[, factor, fname]) : plot factors
     '''
-    def __init__(self, random_state=0, p_samples=0.5, alpha=1, n_column=4):
+    def __init__(self, random_state=0, frac=0.5, alpha=1, n_column=4):
         
-        self.random_state = random_state
-        self.p_samples = min(max(p_samples,0.01),1)
+        self.kwargs = dict(random_state=random_state,frac=frac)
         self.alpha = alpha
         self.n_column = n_column
         self.cmap = cm.get_cmap('OrRd',10)
@@ -592,8 +600,7 @@ class plot_factors:
         \t (more info see matplotlib.pyplot.savefig)
         '''
         # random sampling
-        n = int(self.p_samples*len(X))
-        sample = X.sample(n,random_state=self.random_state)
+        sample = X.sample(**self.kwargs)
 
         # plot layout
         n_figure = X.shape[1]-1
@@ -601,7 +608,7 @@ class plot_factors:
         gridsize = (n_row, self.n_column)
         fig_loc = [(n,m) for n in range(n_row) 
                    for m in range(self.n_column)][:n_figure]
-
+        
         # Columns names
         if factor is None: factor = list(X)[0]
         columns = [n for n in list(X) if n != factor]
