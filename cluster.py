@@ -858,8 +858,9 @@ class cluster_factors:
         loc = [(n,m) for n in range(n_rows) for m in 
                range(self.n_columns)][:n_plots]
         
-        if (factor is None) & (method=='scatter'): factor = list(X)[0]
-        x1 = sample[factor]
+        if method=='scatter':
+            if factor is None: factor = list(X)[0]
+            x1 = sample[factor]
         columns = [n for n in list(X) if n != factor]
         
         figsize = (self.figsize[0]*self.n_columns,
