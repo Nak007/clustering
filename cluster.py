@@ -757,7 +757,7 @@ def cluster_histogram(axis, x, y, colors=None, bins=100, sigma=1, labels=None):
     axis.set_xlabel(s, **kwargs)
     axis.set_ylabel('Density', **kwargs)
     axis.set_facecolor('white')
-    y_max = axis.get_ylim()[1]*5/3
+    y_max = axis.get_ylim()[1]*5/3.5
     axis.set_ylim(0,y_max)
     
     # legend and labels
