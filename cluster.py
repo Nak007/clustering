@@ -508,7 +508,7 @@ def cluster_results(data, transform='normalize', n_columns=2, figsize=(5.5,3.5),
     '''
     # Find number of plots and layout
     plots = ['wcss','silhouette','gap_stat','Z']
-    plots = np.unique(set(plots).intersection(data.keys()))
+    plots = np.unique(list(set(plots).intersection(data.keys())))
     n_plots = len(plots)
     n_rows = np.ceil(n_plots/n_columns).astype(int)
     shape = (n_rows,n_columns)
