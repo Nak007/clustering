@@ -12,6 +12,7 @@ from matplotlib import cm
 from scipy import stats
 from scipy.stats import gaussian_kde
 from factor_analyzer import FactorAnalyzer
+from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
 
 class outliers:
   
@@ -751,3 +752,272 @@ class factor_analysis:
         fig.tight_layout()
         if fname!=None: plt.savefig(fname)
         plt.show()
+
+class variable_cluster:
+    
+    '''
+    ** Variable Clustering **
+    
+    The "variable_cluster" algorithm proceeds as the following steps:
+    
+    (1) Principal Components (PC) are computed by using linear 
+        decomposition technique, namely Principal Component Analysis 
+        (PCA), of a correlation matrix.
+    (2) Select the number of PCs from percentage of explained variance
+        (proportion) or minimum eigen value (mineigen).
+    (3) By using obtained PCs in absolute term, hierarchical clustering 
+        (linkage) is performed in order to split variables into clusters 
+        (maxclusters).
+    (4) For each variable, the ratio of (1-r(k))/(1-r(n)) is computed,
+        where r(k) and r(n) represent average of r-sqaures with other 
+        variables within the same cluster, in the nearest cluster, 
+        respectively. Small values of this ratio indicate good 
+        clustering.
+ 
+    Parameters
+    ----------
+    maxclusters : int, optional, (default:10)
+    \t The number of clusters, in which function computes
+    
+    proportion : int, optional, (default:80)
+    \t The percentage of variance explained that a pool of 
+    \t principal components has to collectively reach as one 
+    \t of stopping criteria
+    
+    mineigen : float, optional, (default:1.0)
+    \t The minimum eigen value
+    
+    Methods
+    -------
+    self.fit : fit model according to given variables
+    self.plot_varclus : visualize clustering in dendrogram plot
+    self.plot_loadings : loading plot of selected principal components
+    '''
+    def __init__(self, maxclusters=10, proportion=80, mineigen=1.0):
+        
+        self.maxclusters = max(maxclusters,2)
+        self.proportion = proportion/100
+        self.mineigen = mineigen
+    
+    def fit(self, X):
+        
+        '''
+        Parameters
+        ----------
+        X : dataframe object, of shape (n_samples, n_features)
+        
+        Returns
+        -------
+        - self.n_princom : Number of Principal Components
+        - self.loadings : Principal component loading matrix
+        - self.Z : The hierarchical clustering encoded as a linkage matrix
+        - self.r_square : Dataframe object of clustered variables
+        '''
+        # Fit prinical_components model
+        pca = principal_components(self.proportion*100,self.mineigen)
+        pca.fit(X)
+        
+        # select number of principal components
+        n_pc1 = (pca.eig_value>self.mineigen).sum()
+        cum_var = np.cumsum(pca.var_exp/sum(pca.var_exp))
+        n_pc2 = (cum_var<=self.proportion).sum()
+        
+        # determine clusters
+        self.n_princom = max(n_pc1, n_pc2, 2)
+        self.loadings = pca.loadings.values[:,:self.n_princom]       
+        self.Z = linkage(abs(self.loadings), method='ward', metric='euclidean')
+        labels = np.hstack([fcluster(self.Z, k, criterion='maxclust').reshape(-1,1) 
+                            for k in np.arange(1,self.maxclusters+1)])
+        
+        # This is neccessary to reduce matrix when algorithm can no longer
+        # split variables into sub cluster and identical labels are produced
+        # instead.
+        self.maxclusters = sum([~((labels[:,n-1]==labels[:,n]).sum()==labels.shape[0]) 
+                                for n in np.arange(1,labels.shape[1])]) + 1
+        self.labels = labels[:,:self.maxclusters]
+        
+        # find own-cluster and nearest-cluster R-square
+        a = self.__own_cluster_r(list(X), self.labels)
+        b = self.__nearest_cluster_r(list(X), self.labels)
+        r = a.merge(b.drop(columns=['cluster']),on=['variable'],how='left')
+        r['r_ratio'] = (1-r['own_cluster'])/(1-r['nearest_cluster'])
+        r = r.sort_values(by=['cluster','r_ratio'],ascending=[True,True])
+        self.r_square = r.reset_index(drop=True)
+        
+    def __own_cluster_r(self, features, labels):
+
+        '''
+        Determine R-squared of variables within the cluster
+        
+        Parameters
+        ----------
+        X : dataframe object, of shape (n_samples, n_features)
+        labels : Array of labels, of shape (n_features, n_clusters)
+        '''
+        clusters = labels[:,-1]
+        a = [(n,f) for n,f in zip(clusters,features)]
+        a.sort(key=lambda a: a[0])
+        sort_keys = np.array(a)[:,1].ravel()
+        corr = X[sort_keys].corr()
+        
+        # Construct matrix for own cluster
+        a = np.sort(clusters).reshape(-1,1)
+        c = np.sqrt(a*a.T)
+        c = np.where(c==a,corr.values,np.nan)
+        
+        # eliminate diagonal elements
+        c = np.where(np.identity(len(c))==1,np.nan,c)
+        # group that has one member is replace with 1
+        c = np.where((~np.isnan(c)).sum(axis=1)==0,1,c**2)
+        r = np.nanmean(c,axis=1).ravel()
+        data = dict(variable=sort_keys.ravel(), cluster=a.ravel(), own_cluster=r)
+        return pd.DataFrame(data)
+    
+    def __pairwise_nearest_k(self, labels):
+  
+        '''
+        Determine the closest cluster for all clusters
+
+        Parameters
+        ----------
+        labels : Array of integers, of shape (n_features,n_clusters)
+        '''
+        # Array of labels
+        p = np.unique(labels,axis=0)
+        z = np.zeros((1,labels.shape[1]))
+        p = np.vstack((z,p,z))
+        # Initial vaues
+        cons, c = 2, 1 # cons : consecutiveness, c : nth layer from bottom
+        combi = dict((str(n),[]) for n in np.arange(cons,labels.max()))
+
+        while cons<len(p)-2:
+            c += 1
+            # Contruct an array of consecutiveness
+            a = np.hstack([p[:,-c][n:n+len(p)-cons-1].reshape(-1,1) for n in range(2+cons)])
+            # Condition (1) : elements that stay in the middle must be the same
+            cond1 = (np.diff(a[:,1:cons+1]).sum(axis=1)==0)
+            # Condition (2) : both ends of elements must be different
+            cond2 = ((a[:,0]!=a[:,1]) & (a[:,-2]!=a[:,-1]))
+            # Both conditions must be satisfied in order to be in the same cluster
+            a = (cond1 & cond2).astype(int)
+            n = [np.arange(n,n+cons).tolist() for n,p in enumerate(a,1) if p==1]
+            # if new entry has more member, then accept, otherwise move to
+            # next consecutiveness (plus 1)
+            if len(combi[str(cons)]) < len(n): combi[str(cons)] = n
+            else: cons+=1; c = c - 1
+
+        combi = [e for key in combi.keys() for e in combi[key]]
+        # Combination that has max number of elements
+        n_max = np.max([len(n) for n in combi])
+        z = np.full((len(combi),n_max),0)
+        for r,p in enumerate(combi):
+            for c,s in enumerate(p):
+                z[r,c] = s
+
+        # find the nearest clusters
+        nearest_k = dict()
+        for k in np.unique(labels):
+            n = np.argmax((z==k).sum(axis=1))
+            a = np.unique(z[n,:])
+            a = np.where(a==k,0,a)
+            nearest_k[k] = a[a>0].tolist()
+        return nearest_k
+    
+    def __nearest_cluster_r(self, features, labels):
+
+        '''
+        Determine R-squared of variables from the nearest cluster
+        
+        Parameters
+        ----------
+        X : dataframe object, of shape (n_samples, n_features)
+        labels : Array of labels, of shape (n_features, n_clusters)
+        '''
+        nearest = self.__pairwise_nearest_k(labels)
+        clusters = labels[:,-1]
+        a = [(n,f) for n,f in zip(clusters, features)]
+        a.sort(key=lambda a: a[0])
+        sort_keys = np.array(a)[:,1].ravel()
+        corr = X[sort_keys].corr().values
+        k_list = np.array(a)[:,0].ravel()
+
+        m = np.full(corr.shape,0)
+        for k in np.unique(clusters):
+            h = np.full(len(k_list),0)
+            for n in nearest[k]:
+                h = h + (k_list==str(n))
+            m += (k_list==str(k)).reshape(-1,1)*h
+        r = np.nanmean(np.where(m==1,corr,np.nan)**2,axis=1)
+        data = dict(variable=sort_keys.ravel(), cluster=k_list, nearest_cluster=r)
+        return pd.DataFrame(data)
+    
+    def plot_varclus(self, axis):
+                   
+        '''
+        Plot dendrogram of variable clustering
+        
+        Parameters
+        ----------
+        axis : matplotlib axis object
+        \t axis refers to a single Axes object 
+        '''
+        kwargs = dict(p=int(self.maxclusters), truncate_mode='lastp', leaf_rotation=90, 
+                      leaf_font_size=10, show_contracted=True, ax=axis,orientation='right')
+        dendro = dendrogram(self.Z, **kwargs)
+        k,n = np.unique(self.labels[:,-1], return_counts=True)
+        
+        yticklabels = ['C{0} ({1})'.format(s[0],s[1]) for s in zip(k,n)]
+        axis.set_yticklabels(yticklabels, rotation=0)
+        axis.set_facecolor('white')
+        kwargs = dict(color='#3d3d3d', fontsize=11, fontweight='bold')
+        axis.set_ylabel('Cluster', **kwargs)
+        axis.set_xlabel('Distance', **kwargs)
+        axis.set_title('Variable Cluster', fontsize=14)
+        
+        # annotation for distance
+        x = np.array(dendro['dcoord'])
+        y = np.array(dendro['icoord'])
+        d = dendro['leaves']
+        for n in range(x.shape[0]):
+            nx, ny = x[n,1], y[n,1:3].mean()
+            axis.text(nx,ny,'{0} '.format(d[n]), va='center',ha='right')
+    
+    def plot_loadings(self, fig):
+        
+        '''
+        ** Loading plot **
+
+        The loading plot illustrates the coefficients of each variable 
+        for the first component versus the coefficients for the rest of 
+        selected components.
+
+        Regarding the interpretation, loading plot helps identify which 
+        variables have the largest effect on each component. 
+        Loadings can range from -1 to 1. Loadings close to -1 or 1 indicate 
+        that the variable strongly influences the component. 
+        
+        Parameters
+        ----------
+        fig : matplotlib figure object
+        \t The top level container for all the plot elements.
+        
+        Returns
+        -------
+        list of axes
+        '''
+        bbox = dict(boxstyle="circle", fc='w', ec='b', pad=0.4)
+        props = dict(color='b', va='center', ha='center', fontsize=10, bbox=bbox)
+        PC = self.loadings[:,:self.n_princom]
+        rect = [(n*0.51,0,0.42,1) for n in range(self.n_princom-1)]
+        axes = [fig.add_axes(r) for r in rect]
+        
+        for n,axis in enumerate(axes,1):
+            c = PC[:,[0,n]]
+            for r in range(len(c)):
+                x,y = [0,c[r,0]], [0,c[r,1]]
+                axis.plot(x,y,color='b', lw=0.5)
+                axis.text(x[1], y[1], '{0}'.format(r+1), **props)
+            axis.axhline(0, color='grey', lw=1, ls='--')
+            axis.axvline(0, color='grey', lw=1, ls='--')
+            axis.set_xlabel('PC_01')
+            axis.set_ylabel('PC_0{0}'.format(n+1))
