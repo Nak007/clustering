@@ -1021,3 +1021,4 @@ class variable_cluster:
             axis.axvline(0, color='grey', lw=1, ls='--')
             axis.set_xlabel('PC_01')
             axis.set_ylabel('PC_0{0}'.format(n+1))
+        return axes
