@@ -837,14 +837,14 @@ class variable_cluster:
         self.labels = labels[:,:self.maxclusters]
         
         # find own-cluster and nearest-cluster R-square
-        a = self.__own_cluster_r(list(X), self.labels)
-        b = self.__nearest_cluster_r(list(X), self.labels)
+        a = self.__own_cluster_r(X, self.labels)
+        b = self.__nearest_cluster_r(X, self.labels)
         r = a.merge(b.drop(columns=['cluster']),on=['variable'],how='left')
         r['r_ratio'] = (1-r['own_cluster'])/(1-r['nearest_cluster'])
         r = r.sort_values(by=['cluster','r_ratio'],ascending=[True,True])
         self.r_square = r.reset_index(drop=True)
         
-    def __own_cluster_r(self, features, labels):
+    def __own_cluster_r(self, X, labels):
 
         '''
         Determine R-squared of variables within the cluster
@@ -855,7 +855,7 @@ class variable_cluster:
         labels : Array of labels, of shape (n_features, n_clusters)
         '''
         clusters = labels[:,-1]
-        a = [(n,f) for n,f in zip(clusters,features)]
+        a = [(n,f) for n,f in zip(clusters,list(X))]
         a.sort(key=lambda a: a[0])
         sort_keys = np.array(a)[:,1].ravel()
         corr = X[sort_keys].corr()
@@ -923,7 +923,7 @@ class variable_cluster:
             nearest_k[k] = a[a>0].tolist()
         return nearest_k
     
-    def __nearest_cluster_r(self, features, labels):
+    def __nearest_cluster_r(self, X, labels):
 
         '''
         Determine R-squared of variables from the nearest cluster
@@ -935,7 +935,7 @@ class variable_cluster:
         '''
         nearest = self.__pairwise_nearest_k(labels)
         clusters = labels[:,-1]
-        a = [(n,f) for n,f in zip(clusters, features)]
+        a = [(n,f) for n,f in zip(clusters, list(X))]
         a.sort(key=lambda a: a[0])
         sort_keys = np.array(a)[:,1].ravel()
         corr = X[sort_keys].corr().values
