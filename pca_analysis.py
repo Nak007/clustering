@@ -982,7 +982,7 @@ class variable_cluster:
             nx, ny = x[n,1], y[n,1:3].mean()
             axis.text(nx,ny,'{0} '.format(d[n]), va='center',ha='right')
     
-    def plot_loadings(self, fig):
+    def plot_loadings(self, fig, n_column=3):
         
         '''
         ** Loading plot **
@@ -1001,14 +1001,24 @@ class variable_cluster:
         fig : matplotlib figure object
         \t The top level container for all the plot elements.
         
+        n_column : int, optional, (default:3)
+        \t Number of display columns
+        
         Returns
         -------
         list of axes
         '''
-        bbox = dict(boxstyle="circle", fc='w', ec='b', pad=0.4)
-        props = dict(color='b', va='center', ha='center', fontsize=10, bbox=bbox)
+        bbox = dict(boxstyle="circle", fc='w', ec='b', pad=0.25)
+        props = dict(color='b', va='center', ha='center', fontsize=9, bbox=bbox)
         PC = self.loadings[:,:self.n_princom]
-        rect = [(n*0.51,0,0.42,1) for n in range(self.n_princom-1)]
+        
+        n_axes = self.n_princom - 1
+        n_row = int(np.ceil(n_axes/n_column))
+        offset = 0.1 # (% offset from bottom and left)
+        w, h = (1-offset)/n_column, (1-offset)/n_row
+        # (left, bottom, width, height)
+        rect = [(c*w+offset,r*h+offset,0.78*w,0.78*h) for r in range(n_row,-1,-1) 
+                for c in range(n_column)][:n_axes]
         axes = [fig.add_axes(r) for r in rect]
         
         for n,axis in enumerate(axes,1):
@@ -1019,6 +1029,6 @@ class variable_cluster:
                 axis.text(x[1], y[1], '{0}'.format(r+1), **props)
             axis.axhline(0, color='grey', lw=1, ls='--')
             axis.axvline(0, color='grey', lw=1, ls='--')
-            axis.set_xlabel('PC_01')
-            axis.set_ylabel('PC_0{0}'.format(n+1))
+            axis.set_xlabel('PC_1',fontsize=10)
+            axis.set_ylabel('PC_{0}'.format(n+1),fontsize=10)
         return axes
