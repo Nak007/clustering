@@ -244,6 +244,10 @@ class principal_components:
     eigen_cutoff : float, optional, (default:1.0)
     \t Eigen value threshold
     
+    scale : bool, optional, (default:True)
+    \t Whether to scale loadings (eigenvectors) by sqrt of eigenvalues
+    \t (1 standard deviation)
+    
     Methods
     -------
     - fit(self, X) : Fit the model according to the given training data
@@ -260,10 +264,11 @@ class principal_components:
     self.var_cutoff
     self.eigen_cutoff
     '''
-    def __init__(self, var_cutoff=80, eigen_cutoff=1.0):
+    def __init__(self, var_cutoff=80, eigen_cutoff=1.0, scale=True):
     
         self.var_cutoff = var_cutoff
         self.eigen_cutoff = eigen_cutoff
+        self.scale = scale
   
     def __to_array(self, X):
     
@@ -322,11 +327,11 @@ class principal_components:
         self.eig_vector = np.hstack(eig_pairs[:,1]) #<-- Orthonormal       
         self.var_exp = eig_pairs[:,0]/sum(eigvalues)*100
         self.cum_var_exp = np.cumsum(self.var_exp)
-
+        
         # Factor Loading
-        self.loadings = self.__loadings()
+        self.loadings = self.__loadings(self.scale)
   
-    def __loadings(self):
+    def __loadings(self, scale=True):
         
         '''
         ** Loadings (scaled by 1-stdev) **
@@ -344,7 +349,8 @@ class principal_components:
         vector has length one and is orthogonal to all the other 
         colum vectors (independent) ==> QT.Q= 1
         '''
-        a = self.eig_vector * np.sqrt(self.eig_value)
+        if scale: a = self.eig_vector * np.sqrt(self.eig_value)
+        else: a = self.eig_vector
         n_comps = len(self.columns)
         digit = 10**math.ceil(np.log(n_comps+1)/np.log(10))
         columns = ['PC_'+str(i+digit)[1:] for i in range(1,n_comps+1)]
@@ -790,17 +796,22 @@ class variable_cluster:
     mineigen : float, optional, (default:1.0)
     \t The minimum eigen value
     
+    scale : bool, optional, (default:True)
+    \t Whether to scale loadings (eigenvectors) by sqrt of eigenvalues
+    \t (1 standard deviation)
+    
     Methods
     -------
     self.fit : fit model according to given variables
     self.plot_varclus : visualize clustering in dendrogram plot
     self.plot_loadings : loading plot of selected principal components
     '''
-    def __init__(self, maxclusters=10, proportion=80, mineigen=1.0):
+    def __init__(self, maxclusters=10, proportion=80, mineigen=1.0, scale=True):
         
         self.maxclusters = max(maxclusters,2)
         self.proportion = proportion/100
         self.mineigen = mineigen
+        self.scale = scale
     
     def fit(self, X):
         
@@ -817,7 +828,7 @@ class variable_cluster:
         - self.r_square : Dataframe object of clustered variables
         '''
         # Fit prinical_components model
-        pca = principal_components(self.proportion*100,self.mineigen)
+        pca = principal_components(self.proportion*100,self.mineigen,self.scale)
         pca.fit(X)
         
         # select number of principal components
