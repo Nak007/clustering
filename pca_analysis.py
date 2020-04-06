@@ -985,7 +985,7 @@ class variable_cluster:
             nx, ny = x[n,1], y[n,1:3].mean()
             axis.text(nx,ny,'{0} '.format(d[n]), va='center',ha='right')
     
-    def plot_loadings(self, fig, n_column=3):
+    def plot_loadings(self, fig, n_column=3, show_=False):
         
         '''
         ** Loading plot **
@@ -1006,6 +1006,10 @@ class variable_cluster:
         
         n_column : int, optional, (default:3)
         \t Number of display columns
+        
+        show_labels : bool, optional, (default:False)
+        \t If True, labels indicating nth feature in the same
+        \t order as X, are shown at the end of vectors
         
         Returns
         -------
@@ -1028,8 +1032,8 @@ class variable_cluster:
             c = PC[:,[0,n]]
             for r in range(len(c)):
                 x,y = [0,c[r,0]], [0,c[r,1]]
-                axis.plot(x,y,color='b', lw=0.5)
-                axis.text(x[1], y[1], '{0}'.format(r+1), **props)
+                axis.plot(x, y,color='b', lw=0.5, marker='o', ms=3)
+                if show_labels: axis.text(x[1], y[1], '{0}'.format(r+1), **props)
             axis.axhline(0, color='grey', lw=1, ls='--')
             axis.axvline(0, color='grey', lw=1, ls='--')
             axis.set_xlabel('PC_1',fontsize=10)
