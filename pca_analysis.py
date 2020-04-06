@@ -318,7 +318,7 @@ class principal_components:
         eig_pairs = np.array(eig_pairs)
         
         # eigenvalues and eigenvectors
-        self.eig_value = eig_pairs[:,0].ravel()
+        self.eig_value = eig_pairs[:,0].ravel().astype(float)
         self.eig_vector = np.hstack(eig_pairs[:,1]) #<-- Orthonormal       
         self.var_exp = eig_pairs[:,0]/sum(eig_value)*100
         self.cum_var_exp = np.cumsum(self.var_exp)
