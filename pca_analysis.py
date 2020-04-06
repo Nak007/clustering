@@ -985,7 +985,7 @@ class variable_cluster:
             nx, ny = x[n,1], y[n,1:3].mean()
             axis.text(nx,ny,'{0} '.format(d[n]), va='center',ha='right')
     
-    def plot_loadings(self, fig, n_column=3, show_=False):
+    def plot_loadings(self, fig, n_column=3, show_labels=False):
         
         '''
         ** Loading plot **
