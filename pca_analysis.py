@@ -310,37 +310,40 @@ class principal_components:
         self.correl = pd.DataFrame(a).corr().values
 
         # find eigen vectors and eigen values
-        eig_value, eig_vector = np.linalg.eig(self.correl)
+        eigvalues, eigvectors = np.linalg.eig(self.correl)
         
-        # Since eigen vectors are not unique, thus, to get consistent  
-        # results, the sum of eigen vectors is calculated and  
-        # multiplied by -1 if its sum is less than 0
-        for n in range(eig_vector.shape[1]):
-            if (eig_vector[:,n].sum() < 0): 
-                eig_vector[:,n] = -1 * eig_vector[:,n]
-        
-        # Make a list of (eigen values, eigen vectors)
         # Sort the (eigenvalue, eigenvector) tuples from high to low
-        eig_pairs = [(np.abs(eig_value[n]), eig_vector[:,n]) 
-                     for n in range(X.shape[1])]
-        eig_pairs.sort(reverse=True) #<-- ascending order
-
-        # var_explained(i) = eigen_val(i)/sum(eigen_val)
-        variance = sum(eig_value)
-        self.eig_value = -np.sort(-eig_value) #<-- descending
-        self.var_exp = [(n/variance)*100 for n in self.eig_value]
+        eig_pairs = [(eigvalues[n], eigvectors[:,n].reshape(-1,1)) for n in range(X.shape[1])]
+        eig_pairs.sort(reverse=True, key=lambda x:x[0]) #<-- ascending order
+        eig_pairs = np.array(eig_pairs)
+        
+        # eigenvalues and eigenvectors
+        self.eig_value = eig_pairs[:,0].ravel()
+        self.eig_vector = np.hstack(eig_pairs[:,1]) #<-- Orthonormal       
+        self.var_exp = eig_pairs[:,0]/sum(eig_value)*100
         self.cum_var_exp = np.cumsum(self.var_exp)
-
-        # Sorted eigen values and their vectors
-        n_pair = np.arange(len(eig_pairs))
-        self.eig_value = np.array([eig_pairs[n][0] for n in n_pair])        
-        self.eig_vector = np.hstack([eig_pairs[n][1].reshape(-1,1) for n in n_pair])         
 
         # Factor Loading
         self.loadings = self.__loadings()
   
     def __loadings(self):
-
+        
+        '''
+        ** Loadings (scaled by 1-stdev) **
+        
+        It is a way of weighting the "more important" dimension 
+        more highly. For rooting the eigenvalue, recall that the 
+        eigenvalues in PCA represent variances, and so the square 
+        root of the eigenvalue represents the standard deviation. 
+        It is more natural to scale by standard deviation, since 
+        it is in the same units as the data  So, by scaling by the 
+        rooted eigenvalues, it is like we are looking 1 standard 
+        deviation out, in each of the two PCA dimensions.
+        
+        Note: Orthonormal matrix has properties that each column 
+        vector has length one and is orthogonal to all the other 
+        colum vectors (independent) ==> QT.Q= 1
+        '''
         a = self.eig_vector * np.sqrt(self.eig_value)
         n_comps = len(self.columns)
         digit = 10**math.ceil(np.log(n_comps+1)/np.log(10))
