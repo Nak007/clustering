@@ -1035,7 +1035,7 @@ class variable_cluster:
         offset = 0.1 # (% offset from bottom and left)
         w, h = (1-offset)/n_column, (1-offset)/n_row
         # (left, bottom, width, height)
-        rect = [(c*w+offset,r*h+offset,0.78*w,0.78*h) for r in range(n_row,-1,-1) 
+        rect = [(c*w+offset,r*h+offset,0.78*w,0.78*h) for r in range(n_row-1,-1,-1) 
                 for c in range(n_column)][:n_axes]
         axes = [fig.add_axes(r) for r in rect]
         
