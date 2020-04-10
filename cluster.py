@@ -749,7 +749,7 @@ def cluster_histogram(axis, x, y, colors=None, bins=100, sigma=1, labels=None):
         hist = np.histogram(x[y==k], bins=bins, density=True)[0]
         pdf = smt(hist,sigma); pdf = pdf/sum(pdf)
         plot[n] = axis.fill_between(ticks, pdf, color=colors[k], alpha=0.5)
-        axis.plot(ticks, pdf, color=colors[k], lw=1)
+        axis.bar(ticks, pdf, color=colors[k], lw=1)
         text_xy[n] = (np.argmax(pdf),max(pdf),str(k+1))
     
     kwargs = dict(color='#3d3d3d', fontsize=10, fontweight='bold')
