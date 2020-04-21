@@ -349,7 +349,10 @@ class principal_components:
         vector has length one and is orthogonal to all the other 
         colum vectors (independent) ==> QT.Q= 1
         '''
-        if scale: a = self.eig_vector * np.sqrt(self.eig_value)
+        if scale:
+          sigma = [float(n)**0.5 if n>=0 else (float(n)**0.5).real 
+                   for n in self.eig_value]
+          a = self.eig_vector * sigma
         else: a = self.eig_vector
         n_comps = len(self.columns)
         digit = 10**math.ceil(np.log(n_comps+1)/np.log(10))
