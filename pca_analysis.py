@@ -25,7 +25,7 @@ class outliers:
     a certain value above the upper bound or floored below the lower bound.
 
     1) Percentile : (alpah, 100-alpha)
-    2) Sigma : (average - beta * sigma, average + beta + sigma)  
+    2) Sigma : (average - beta * sigma, average + beta * sigma)  
     3) Interquartile Range (IQR) : (Q1 - beta * IQR, Q3 + beta * IQR)
     4) Gamma : (min(IQR,gamma), max(IQR,gamma))
     \t This approach determines rate of change (r) and locates cut-off 
