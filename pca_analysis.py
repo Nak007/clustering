@@ -782,7 +782,7 @@ class variable_cluster:
         (maxclusters).
     (4) For each variable, the ratio of (1-r(k))/(1-r(n)) is computed,
         where r(k) and r(n) represent average of r-sqaures with other 
-        variables within the same cluster, in the nearest cluster, 
+        variables within the same cluster, and in the nearest cluster, 
         respectively. Small values of this ratio indicate good 
         clustering.
  
